@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const sendButton = document.getElementById("sendButton");
     const chatContainer = document.getElementById("chatContainer");
 
-    function sendMessage() {
+    async function sendMessage() {
         const message = input.value.trim();
         if (message === "") return;
 
@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Limpar a caixa de entrada
         input.value = "";
-        input.style.height = "40px"; // Resetar altura do textarea
+        input.style.height = "40px";
 
         // Criar e exibir a animação de "digitando..."
         const typingMessage = document.createElement("div");
@@ -23,34 +23,45 @@ document.addEventListener("DOMContentLoaded", function () {
         typingMessage.innerHTML = '<span class="typing"><span>.</span><span>.</span><span>.</span></span>';
         chatContainer.appendChild(typingMessage);
 
-        // Auto-scroll para a última mensagem
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
-        // Simular resposta
-        setTimeout(() => {
+        try {
+            const response = await fetch("http://localhost:8000/perguntar", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ pergunta: message })
+            });
+
+            const data = await response.json();
+
             typingMessage.remove(); // Remove a animação
 
-            // Criar e exibir a resposta
             const botMessage = document.createElement("div");
             botMessage.classList.add("message");
-            botMessage.textContent = "Esta é uma resposta automática sobre a LAI.";
+            botMessage.textContent = data.resposta || "Desculpe, não consegui entender.";
             chatContainer.appendChild(botMessage);
+        } catch (error) {
+            typingMessage.remove();
 
-            // Auto-scroll novamente
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }, 2000);
+            const errorMessage = document.createElement("div");
+            errorMessage.classList.add("message");
+            errorMessage.textContent = "Erro ao se comunicar com o servidor.";
+            chatContainer.appendChild(errorMessage);
+            console.error("Erro:", error);
+        }
+
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // Ajustar altura do textarea dinamicamente
     input.addEventListener("input", function () {
         this.style.height = "40px";
         this.style.height = this.scrollHeight + "px";
     });
 
-    // Enviar mensagem ao clicar no botão
     sendButton.addEventListener("click", sendMessage);
 
-    // Enviar mensagem ao pressionar Enter
     input.addEventListener("keydown", function (event) {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
